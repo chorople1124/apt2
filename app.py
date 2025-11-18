@@ -20,7 +20,7 @@ st.sidebar.header("📁 데이터 불러오기")
 uploaded_file = st.sidebar.file_uploader("CSV 파일 업로드 (.csv)", type=["csv"])
 
 # 👉 기본 CSV 파일 경로 (원하면 고쳐 쓰기)
-default_path = "seoul_rent.csv"
+default_path = "csv.csv"
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
