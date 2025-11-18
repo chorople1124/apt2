@@ -40,8 +40,8 @@ st.dataframe(df.head())
 # 2. 컬럼 이름 설정 (여기만 본인 CSV에 맞게 수정)
 # --------------------------------------------------------------------
 # ⚠️ 아래 네 줄은 꼭 본인 CSV 컬럼명에 맞게 바꿔주세요.
-CONTRACT_DATE_COL = "contract_date"   # 계약일 컬럼명 (예: '계약일', 'date' 등)
-TARGET_COL        = "monthly_rent"    # 월세 컬럼명   (예: '월세', 'rent' 등)
+CONTRACT_DATE_COL = "건축년도"   # 계약일 컬럼명 (예: '계약일', 'date' 등)
+TARGET_COL        = "월세금(만원)    # 월세 컬럼명   (예: '월세', 'rent' 등)
 
 # 예시로 사용하는 피처들 - 실제 CSV에 존재하는 것만 자동으로 사용
 CANDIDATE_NUMERIC_FEATURES = [
