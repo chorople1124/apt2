@@ -10,7 +10,8 @@ from sklearn.metrics import mean_squared_error
 st.set_page_config(page_title="서울 아파트 월세 예측 (Random Forest)", layout="wide")
 
 st.title("🏙️ 서울 아파트 월세 예측 · 건축년도별 평균 월세 시각화")
-st.write("랜덤 포레스트 회귀 모델을 이용해 서울 아파트 월세를 예측하고, **건축년도(시대)별 평균 월세 추세**를 그래프로 보여주는 앱입니다.")
+st.write("랜덤 포레스트 회귀 모델을 이용해 서울 아파트 월세를 예측하고, "
+         "**건축년도(시대)별 평균 월세 추세**를 그래프로 보여주는 앱입니다.")
 
 # --------------------------------------------------------------------
 # 1. CSV 불러오기: 업로드 또는 기본 파일
@@ -19,7 +20,7 @@ st.sidebar.header("📁 데이터 불러오기")
 
 uploaded_file = st.sidebar.file_uploader("CSV 파일 업로드 (.csv)", type=["csv"])
 
-# 👉 기본 CSV 파일 경로 (원하면 고쳐 쓰기)
+# 👉 기본 CSV 파일 경로 (원하는 이름으로 변경 가능)
 default_path = "csv.csv"
 
 if uploaded_file is not None:
@@ -117,6 +118,9 @@ model = RandomForestRegressor(
 
 model.fit(X_train, y_train)
 
+# 학습에 사용된 피처 컬럼 저장 (폼 입력 인코딩에 사용)
+feature_columns = X.columns
+
 # --------------------------------------------------------------------
 # 7. 성능 평가
 # --------------------------------------------------------------------
@@ -131,7 +135,65 @@ with col2:
     st.write(f"테스트 데이터 개수: {len(y_test)}")
 
 # --------------------------------------------------------------------
-# 8. 전체 데이터에 대해 예측 + 건축년도별 평균 계산
+# 8. 📋 월세 예측 폼 (사용자가 직접 값 입력해서 예측)
+# --------------------------------------------------------------------
+st.subheader("📝 월세 예측 폼")
+
+# 시군구 선택 옵션 (데이터에 있는 값들)
+sigungu_options = sorted(df[COL_SIGUNGU].dropna().unique().tolist())
+if len(sigungu_options) == 0:
+    sigungu_options = ["예시구"]
+
+# 기본값 설정용
+default_area = float(df[COL_AREA].median()) if df[COL_AREA].notna().sum() > 0 else 20.0
+default_year_built = int(df[COL_YEAR_BUILT].dropna().median()) if df[COL_YEAR_BUILT].notna().sum() > 0 else 2000
+
+with st.form("rent_prediction_form"):
+    col_form1, col_form2, col_form3 = st.columns(3)
+
+    with col_form1:
+        sigungu_input = st.selectbox("시군구 선택", sigungu_options)
+
+    with col_form2:
+        area_input = st.number_input(
+            "평수 입력",
+            min_value=0.0,
+            value=float(default_area),
+            step=1.0
+        )
+
+    with col_form3:
+        year_built_input = st.number_input(
+            "건축년도 입력",
+            min_value=1900,
+            max_value=2100,
+            value=int(default_year_built),
+            step=1
+        )
+
+    submitted = st.form_submit_button("월세 예측하기")
+
+if submitted:
+    # 1) 폼에서 받은 값으로 1행짜리 DataFrame 생성
+    new_data = pd.DataFrame({
+        COL_AREA: [area_input],
+        COL_YEAR_BUILT: [year_built_input],
+        COL_SIGUNGU: [sigungu_input]
+    })
+
+    # 2) 원-핫 인코딩 (학습 때와 동일하게)
+    new_data_encoded = pd.get_dummies(new_data, columns=[COL_SIGUNGU], drop_first=True)
+
+    # 3) 학습에 사용된 피처 컬럼들과 맞추기 (없는 더미 컬럼은 0으로 채움)
+    new_X = new_data_encoded.reindex(columns=feature_columns, fill_value=0)
+
+    # 4) 예측
+    pred_rent = model.predict(new_X)[0]
+
+    st.success(f"예측 월세는 **약 {pred_rent:,.2f} 만원** 정도로 예상됩니다.")
+
+# --------------------------------------------------------------------
+# 9. 전체 데이터에 대해 예측 + 건축년도별 평균 계산
 # --------------------------------------------------------------------
 all_pred = model.predict(X)
 
@@ -153,7 +215,7 @@ summary_df = pd.DataFrame({
 st.dataframe(summary_df)
 
 # --------------------------------------------------------------------
-# 9. 그래프: 건축년도(시대)별 평균 월세 추세
+# 10. 그래프: 건축년도(시대)별 평균 월세 추세
 # --------------------------------------------------------------------
 fig, ax = plt.subplots(figsize=(10, 5))
 
@@ -181,4 +243,5 @@ ax.legend()
 
 st.pyplot(fig)
 
-st.caption("※ 월세 단위는 CSV에서 준 그대로(만원 기준) 사용했습니다. 데이터 범위와 품질에 따라 그래프 모양과 예측 성능이 달라질 수 있습니다.")
+st.caption("※ 월세 단위는 CSV에서 준 그대로(만원 기준) 사용했습니다. "
+           "데이터 범위와 품질에 따라 그래프 모양과 예측 성능이 달라질 수 있습니다.")
